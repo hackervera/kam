@@ -27,7 +27,6 @@ module RpcServer
               io.puts Storage.bucket_members(Kam.bucket(Kam.distance(key))).to_json
             end
           when "ping"
-            p "incoming ping #{structure}"
             Storage.update_bucket(structure).to_json
             io.puts(Kam::NODEINFO.to_json)
           when "find_peers"

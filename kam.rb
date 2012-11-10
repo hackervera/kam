@@ -31,10 +31,8 @@ module Kam
       if ready
         resp = JSON.parse(s.gets)
       else
-        "read failed"
         return
       end
-      p "ping response: #{resp}"
       Storage.update_bucket(resp)
     end
 
@@ -67,6 +65,19 @@ module Kam
       end
     end
 
+    def lookup(key)
+      nodes = alphas(key)
+      found_values = []
+      counter = 0
+      while found_values.empty?
+        counter += 1
+        nodes = Kam.find_value(nodes, key)
+        found_values = nodes.select { |n| n["nodeid"] == key }
+        break if counter > 5
+      end
+      found_values.uniq
+    end
+
     def find_value(alphas, key)
       nodes = []
       alphas.each do |peer|
@@ -74,7 +85,6 @@ module Kam
         resp = nil
         begin
           TCPSocket.open(peer["ip"], peer["port"]) do |s|
-            #ping(s)
             s.puts({ command: "find_value", key: key }.to_json)
             ready = IO.select([s], nil, nil, 3)
             if ready

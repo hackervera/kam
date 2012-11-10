@@ -6,10 +6,8 @@ module Storage
     def update_bucket(structure)
       # generate timestamp
       time            = Time.now.to_i
-
       # determine bucket for nodeid
       bucket          = Kam.bucket(Kam.distance(structure["nodeid"]))
-
       # grab current bucket members
       current_members = JSON.parse(DB.get(bucket.to_s) ) rescue []
       while current_members.length >= 20
@@ -27,7 +25,6 @@ module Storage
          DB.put(bucket.to_s, current_members.to_json)
          "Adding #{structure} to bucket #{bucket}"
        end
-
     end
 
     def bucket_members(bucket)
