@@ -13,9 +13,12 @@ puts "alphas: #{alphas = Kam.alphas(Kam.sha1("boom"))}"
 
 nodes = alphas
 found_values = []
+counter = 0
 while found_values.empty?
+  counter += 1
   puts "found nodes: #{nodes = Kam.find_value(nodes, Kam.sha1("boom"))}"
   puts "found value: #{found_values = nodes.select { |n| n["nodeid"] == Kam.sha1("boom") } }"
+  break if counter > 5
 end
 p "value: #{found_values}"
 
