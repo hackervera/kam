@@ -4,7 +4,7 @@ module RpcServer
 
   class Proto < GServer
     def initialize
-      super(Kam::PORT, Kam::IP)
+      super(Kam::PORT, Kam::IP, 100)
     end
 
     def serve(io)
