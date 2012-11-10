@@ -1,8 +1,0 @@
-ip: 127.0.0.1
-port: 4343
-storage: "/tmp/contacts-other"
-bootstrap:
-  - ip: 127.0.0.1
-    port: 4545
-  - ip: 127.0.0.1
-    port: 5656

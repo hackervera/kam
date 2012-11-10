@@ -1,6 +1,0 @@
-ip: 127.0.0.1
-port: 6767
-storage: "/tmp/clone3"
-bootstrap:
-  - ip: 127.0.0.1
-    port: 4545
