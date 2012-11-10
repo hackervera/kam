@@ -18,19 +18,13 @@ module Kam
       resp = JSON.parse(s.gets)
       p "ping response: #{resp}"
       resp.each { |r| Storage.update_bucket(r) }
-      #p Storage.update_bucket(JSON.parse resp)
     end
 
     def bootstrap
       CONFIG["bootstrap"].each do |peer|
-        p "wtf"
         begin
           TCPSocket.open(peer["ip"], peer["port"]) do |s|
-            s.puts({ command: "ping", nodeid: NODEID, port: PORT, ip: IP }.to_json)
-            resp = JSON.parse(s.gets)
-            p "ping response: #{resp}"
-            resp.each { |r| Storage.update_bucket(r) }
-            #p Storage.update_bucket(JSON.parse resp)
+            ping(s)
           end
         rescue Errno::ECONNREFUSED
           next
@@ -100,7 +94,7 @@ module Kam
     end
 
     def alphas(key)
-      p bucket = Kam::bucket(Kam::distance(key))
+      bucket = Kam::bucket(Kam::distance(key))
       nodes = Storage.bucket_members(bucket).first(3).to_set
       if nodes.length < 3
         nodes += Kam.peers.first(3-nodes.length).to_set

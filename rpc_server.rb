@@ -28,7 +28,7 @@ module RpcServer
           when "ping"
             p "incoming ping #{structure}"
             Storage.update_bucket(structure).to_json
-            io.puts(Kam.peers.shuffle.first(20).to_json)
+            io.puts(Kam::NODEINFO.to_json)
           when "find_peers"
             io.puts Storage.peers
           else
