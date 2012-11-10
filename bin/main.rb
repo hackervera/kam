@@ -3,10 +3,11 @@ require_relative '../kam'
 # alphas make up 'shortlist'
 # send FIND_* request to  alphas in parallel add responses to shortlist
 p "bootstrapping: #{Kam.bootstrap}"
+p "peers: #{Kam.peers}"
 Kam::CONFIG["keys"].each do |key|
   puts "Storing #{key}"
   Storage::DB.put Kam.sha1(key), key
 end rescue nil
 
-p Kam.lookup(Kam.sha1("monster"))
+p Kam.lookup(Kam.sha1("fucker"))
 RpcServer.start
