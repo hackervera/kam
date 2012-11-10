@@ -15,9 +15,15 @@ module Kam
 
     def ping(s)
       s.puts({ command: "ping", nodeid: NODEID, port: PORT, ip: IP }.to_json)
-      resp = JSON.parse(s.gets)
+      ready = IO.select([s], nil, nil, 3)
+      if ready
+        resp = JSON.parse(s.gets)
+      else
+        "read failed"
+        return
+      end
       p "ping response: #{resp}"
-      resp.each { |r| Storage.update_bucket(r) }
+      Storage.update_bucket(resp)
     end
 
     def bootstrap
@@ -38,18 +44,13 @@ module Kam
         next if peer["nodeid"] == Kam::NODEID
         begin
           TCPSocket.new(peer["ip"], peer["port"]) do |s|
-            s.puts({ command: "ping", nodeid: NODEID, port: PORT, ip: IP }.to_json)
-            resp = s.gets
-            p Storage.update_bucket(JSON.parse resp)
             s.puts({ command: "find_node", key: key }.to_json)
             resp = s.gets
             JSON.parse(resp).each { |node| nodes<< node unless node["nodeid"] == Kam::NODEID }
-            #nodes.each{|node| p Storage.update_bucket(node)}
           end
         rescue Errno::ECONNREFUSED
           next
         end
-
         nodes.flatten
       end
     end
@@ -58,31 +59,30 @@ module Kam
       nodes = []
       alphas.each do |peer|
         next if peer["nodeid"] == Kam::NODEID
+        resp = nil
         begin
           TCPSocket.open(peer["ip"], peer["port"]) do |s|
             ping(s)
             s.puts({ command: "find_value", key: key }.to_json)
-            p "waiting on find_value"
-            resp = s.gets
-
-            if resp.nil?
+            ready = IO.select([s], nil, nil, 3)
+            if ready
+              resp = s.gets
+            else
               next
             end
-
-            if resp["value"]
-              nodes << JSON.parse(resp)
-            else
-              JSON.parse(resp).each { |node| nodes<< node unless node["nodeid"] == Kam::NODEID }
-            end
-
-
+          end
+          next if resp.nil?
+          if resp["value"]
+            nodes << JSON.parse(resp)
+          else
+            JSON.parse(resp).each { |node| nodes<< node unless node["nodeid"] == Kam::NODEID }
           end
         rescue Errno::ECONNREFUSED
           next
         end
-
-        #nodes.each{|node| p Storage.update_bucket(node)}
+        nodes.flatten.each { |node| p Storage.update_bucket(node) }
       end
+
       nodes.flatten
     end
 
@@ -93,11 +93,22 @@ module Kam
       end
     end
 
+    def active(nodes)
+      nodes.reject do |peer|
+        connected = nil
+        TCPSocket.open(peer["ip"], peer["port"]) do |s|
+          connected = s
+        end rescue nil
+        connected.nil?
+      end
+    end
+
     def alphas(key)
       bucket = Kam::bucket(Kam::distance(key))
-      nodes = Storage.bucket_members(bucket).first(3).to_set
+      nodes  = Storage.bucket_members(bucket).first(3).to_set
+      nodes  = active(nodes).to_set
       if nodes.length < 3
-        nodes += Kam.peers.first(3-nodes.length).to_set
+        nodes += active(Kam.peers).first(3-nodes.length).to_set
       end
       nodes.to_a.reject { |n| n["nodeid"] == NODEID }
     end

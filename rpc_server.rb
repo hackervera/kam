@@ -21,6 +21,7 @@ module RpcServer
             if value
               node_info          = Kam::NODEINFO
               node_info["value"] = value
+              node_info["nodeid"] = key
               io.puts(node_info.to_json)
             else
               io.puts Storage.bucket_members(Kam.bucket(Kam.distance(key))).to_json
