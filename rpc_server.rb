@@ -33,9 +33,9 @@ module RpcServer
           when "find_peers"
             io.puts Storage.peers
           else
-            io.puts "unknown command".to_json rescue next
+            io.puts "unknown command".to_json rescue (io.close && next)
         end
-        #io.close
+        io.close
       end
     end
   end

@@ -2,6 +2,18 @@ require 'digest/sha1'
 require 'yaml'
 require 'radix'
 require 'set'
+
+class Array
+  def uniq_by(&blk)
+    transforms = []
+    self.select do |el|
+      should_keep = !transforms.include?(t=blk[el])
+      transforms << t
+      should_keep
+    end
+  end
+end
+
 module Kam
 
   class << self
@@ -62,7 +74,7 @@ module Kam
         resp = nil
         begin
           TCPSocket.open(peer["ip"], peer["port"]) do |s|
-            ping(s)
+            #ping(s)
             s.puts({ command: "find_value", key: key }.to_json)
             ready = IO.select([s], nil, nil, 3)
             if ready
@@ -80,9 +92,7 @@ module Kam
         rescue Errno::ECONNREFUSED
           next
         end
-        nodes.flatten.each { |node| p Storage.update_bucket(node) }
       end
-
       nodes.flatten
     end
 
