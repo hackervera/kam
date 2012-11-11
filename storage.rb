@@ -39,7 +39,7 @@ module Storage
     end
 
     def peers
-      DB.each(from: "0", to: "160").map{|_,v| JSON.parse(v) rescue next}.flatten
+      DB.each(from: "0", to: "160").map{|_,v| JSON.parse(v) rescue next}.compact.flatten
     end
   end
 end
