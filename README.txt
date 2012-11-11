@@ -2,4 +2,7 @@ This is my attempt at a basic kademlia style routing network. git clone the repo
 
 remember to 'bundle install'
 
+libmagic is needed for filemagic, 'brew install libmagic' if on mac
+'apt-get install libmagic' if on linux? not sure
+
 run with: ruby bin/main.rb
