@@ -11,26 +11,31 @@ class WebServer < Sinatra::Base
     Storage.bucket_members(Kam.bucket(Kam.distance(params[:key]))).to_json
   end
 
-  get '/closest_node' do
-    Kam.closest_node(params[:key])
-  end
-
 
   post "/store" do
-    data =   open(params[:url]).read
-    sha1 =   Kam.sha1(data)
-    Storage::DB.put(sha1, data)
-    sha1
+    sha1 = Kam.sha1(params[:data])
+    Storage::DB.put(sha1, params[:data])
   end
+
+  post "/node_store" do
+    data  = open(params[:url]).read
+    sha1 = Kam.sha1(data)
+    nodes = Kam.closest_node(sha1)
+    Kam.store(nodes, data)
+    "Storing #{sha1} in #{nodes}"
+  end
+
 
   get "/find" do
     data = Storage::DB.get(params[:key])
 
     if data.nil? || Kam.sha1(data) != params[:key]
       nodes = Kam.active(Kam.lookup(params[:key]))
+      p "LOOOKUP!!!!!!!!!! #{Kam.lookup(params[:key])}"
+      p "NODES!!!!!!!!!!!!!!!! #{nodes}"
       node  = nodes.first
       if node.nil?
-        "Couldn't find any peers with the value"
+        return "Couldn't find any peers with the value"
       else
         data = Kam.transfer(node, params[:key])
         Storage::DB.put(params[:key], data)
@@ -44,8 +49,8 @@ class WebServer < Sinatra::Base
     key   = params[:key]
     value = Storage.find_value(key)
     if value
-      node_info           = Kam::NODEINFO
-      node_info["value"]  = "have"
+      node_info          = Kam::NODEINFO
+      node_info["value"] = "have"
       node_info.to_json
     else
       Storage.bucket_members(Kam.bucket(Kam.distance(key))).to_json
@@ -61,8 +66,8 @@ class WebServer < Sinatra::Base
     Kam::NODEINFO.to_json
   end
 
-  get "/find_peers" do
-    Storage.peers
+  get "/peers" do
+    Kam.active(Kam.peers).to_json
   end
 
 

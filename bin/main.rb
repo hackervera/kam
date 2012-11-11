@@ -1,4 +1,4 @@
-require_relative '../kam'
+require_relative '../lib/kam'
 
 p "bootstrapping: #{Kam.bootstrap}"
 p "peers: #{Kam.peers}"

@@ -3,6 +3,7 @@ require 'yaml'
 require 'radix'
 require 'set'
 require 'open-uri'
+require 'rest_client'
 
 class Array
   def uniq_by(&blk)
@@ -23,8 +24,8 @@ module Kam
       Kam::sha1("#{IP}:#{PORT}")
     end
 
-    def distance(node)
-      Kam::NODEID.b(16).to_i ^ node.b(16).to_i
+    def distance(node,node2=Kam::NODEID)
+      node2.b(16).to_i ^ node.b(16).to_i
     end
 
     def sha1(value)
@@ -52,6 +53,14 @@ module Kam
       url = "http://#{peer["ip"]}:#{peer["port"]}/transfer?key=#{key}"
       open(url).read
     end
+
+
+    def store(peers, data)
+        peers.each do |peer|
+           RestClient.post "http://#{peer["ip"]}:#{peer["port"]}/store", {data: data}
+        end
+    end
+
 
     def find_value(nodes, key)
       url    = nil
@@ -94,7 +103,8 @@ module Kam
 
     def closest_node(key)
       nodes = alphas(key)
-      (Kam.find_node(nodes, key) || []).flatten
+      nodes = (Kam.find_node(nodes, key) || []).flatten.uniq_by{|n| n["nodeid"]}
+      nodes.each{|n|  n["distance"] = Kam.distance(n["nodeid"], key)}.sort_by{|d| d["distance"]}.first(20)
     end
 
     def lookup(key)
@@ -104,7 +114,9 @@ module Kam
       while found_values.empty?
         counter      += 1
         nodes        = Kam.find_value(nodes, key).flatten
-        found_values = nodes.select { |n| n["nodeid"] == key }
+        p "COUNTER!!!!!!! #{counter}"
+        p "NODES!!!!!! #{nodes}"
+        found_values = nodes.select { |n| n["value"] == "have" }
         break if counter > 5 || nodes.empty?
       end
       found_values.uniq
@@ -139,7 +151,7 @@ module Kam
   end
 
 
-  CONFIG   = YAML.load_file(ARGV[0] || File.dirname(__FILE__)+"/config.yml")
+  CONFIG   = YAML.load_file(ARGV[0] || File.dirname(__FILE__)+"/../config/config.yml")
   PORT     = CONFIG["port"]
   IP       = CONFIG["ip"]
   NODEID   = Kam.nodeid
