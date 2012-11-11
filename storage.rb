@@ -1,4 +1,5 @@
 require 'leveldb'
+require 'json'
 module Storage
   DB = LevelDB::DB.new(Kam::CONFIG["storage"])
   class << self
@@ -7,7 +8,7 @@ module Storage
       # generate timestamp
       time            = Time.now.to_i
       # determine bucket for nodeid
-      bucket          = Kam.bucket(Kam.distance(structure["nodeid"]))
+      bucket          = Kam.bucket(Kam.distance(structure["nodeid"] || structure[:nodeid]))
       # grab current bucket members
       current_members = JSON.parse(DB.get(bucket.to_s) ) rescue []
       while current_members.length >= 20

@@ -2,6 +2,7 @@ require 'digest/sha1'
 require 'yaml'
 require 'radix'
 require 'set'
+require 'open-uri'
 
 class Array
   def uniq_by(&blk)
@@ -17,6 +18,11 @@ end
 module Kam
 
   class << self
+
+    def nodeid
+      Kam::sha1("#{IP}:#{PORT}")
+    end
+
     def distance(node)
       Kam::NODEID.b(16).to_i ^ node.b(16).to_i
     end
@@ -25,85 +31,56 @@ module Kam
       Digest::SHA1.hexdigest(value).upcase
     end
 
-    def ping(s)
-      s.puts({ command: "ping", nodeid: NODEID, port: PORT, ip: IP }.to_json)
-      ready = IO.select([s], nil, nil, 3)
-      if ready
-        resp = JSON.parse(s.gets)
-      else
-        return
-      end
-      Storage.update_bucket(resp)
+    def ping(peer)
+      url = "http://#{peer["ip"]}:#{peer["port"]}/ping?nodeid=#{NODEID}&port=#{PORT}&ip#{IP}"
+      response = open(url).read
+      Storage.update_bucket(JSON.parse response)
+    rescue Errno::ECONNREFUSED => e
+      puts "connection to #{peer} failed"
+    rescue OpenURI::HTTPError
+      puts "Internal server error"
+    rescue => e
+      puts e
+      puts e.class
+      puts e.backtrace
     end
+
+    def transfer(peer, key)
+      url   = "http://#{peer["ip"]}:#{peer["port"]}/transfer?key=#{key}"
+      open(url).read
+    end
+
+    def find_value(alphas, key)
+      url = nil
+      bodies = []
+      alphas.reject{|a| a["ip"].nil?}.each do |peer|
+        url =  "http://#{peer["ip"]}:#{peer["port"]}/find_value?key=#{key}"
+        response = open(url).read
+        bodies << JSON.parse(response)
+      end
+      bodies
+    rescue URI::InvalidURIError
+      puts "Bad URI for #{url}"
+    end
+
 
     def bootstrap
       CONFIG["bootstrap"].each do |peer|
-        begin
-          TCPSocket.open(peer["ip"], peer["port"]) do |s|
-            ping(s)
-          end
-        rescue Errno::ECONNREFUSED
-          next
-        end
-      end
-    end
-
-    def find_node(alphas, key)
-      nodes = []
-      alphas.each do |peer|
-        next if peer["nodeid"] == Kam::NODEID
-        begin
-          TCPSocket.new(peer["ip"], peer["port"]) do |s|
-            s.puts({ command: "find_node", key: key }.to_json)
-            resp = s.gets
-            JSON.parse(resp).each { |node| nodes<< node unless node["nodeid"] == Kam::NODEID }
-          end
-        rescue Errno::ECONNREFUSED
-          next
-        end
-        nodes.flatten
+        ping(peer)
       end
     end
 
     def lookup(key)
-      nodes = alphas(key)
+      nodes        = alphas(key)
       found_values = []
-      counter = 0
+      counter      = 0
       while found_values.empty?
-        counter += 1
-        nodes = Kam.find_value(nodes, key)
+        counter      += 1
+        nodes        = Kam.find_value(nodes, key).flatten
         found_values = nodes.select { |n| n["nodeid"] == key }
         break if counter > 5
       end
       found_values.uniq
-    end
-
-    def find_value(alphas, key)
-      nodes = []
-      alphas.each do |peer|
-        next if peer["nodeid"] == Kam::NODEID
-        resp = nil
-        begin
-          TCPSocket.open(peer["ip"], peer["port"]) do |s|
-            s.puts({ command: "find_value", key: key }.to_json)
-            ready = IO.select([s], nil, nil, 3)
-            if ready
-              resp = s.gets
-            else
-              next
-            end
-          end
-          next if resp.nil?
-          if resp["value"]
-            nodes << JSON.parse(resp)
-          else
-            JSON.parse(resp).each { |node| nodes<< node unless node["nodeid"] == Kam::NODEID }
-          end
-        rescue Errno::ECONNREFUSED
-          next
-        end
-      end
-      nodes.flatten
     end
 
 
@@ -142,11 +119,9 @@ module Kam
   CONFIG = YAML.load_file(ARGV[0] || File.dirname(__FILE__)+"/config.yml")
   PORT   = CONFIG["port"]
   IP     = CONFIG["ip"]
-
-  NODEID   = Kam::sha1("#{IP}:#{PORT}")
+  NODEID = Kam.nodeid
   NODEINFO = { nodeid: NODEID, port: PORT, ip: IP }
 
 end
-require_relative 'rpc_server'
 require_relative 'storage'
 require_relative 'web_server'

@@ -8,9 +8,7 @@ p "peers: #{Kam.peers}"
   f = File.read(file)
   key = Kam.sha1(f)
   puts "Storing #{key}"
-  Storage::DB.put key, "have"
+  Storage::DB.put key, f
 end
 
-p Kam.lookup("ABBC7E0E804E146B1EC60197CA46D9A77F7DF329")
-Thread.new {WebServer.run}  unless ARGV[0]
-RpcServer.start
+WebServer.run
