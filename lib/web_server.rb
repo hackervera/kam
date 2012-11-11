@@ -3,6 +3,9 @@ require 'base64'
 require 'filemagic'
 class WebServer < Sinatra::Base
 
+  enable :logging
+  disable :show_exceptions
+
   get "/" do
     erb :index
   end
@@ -13,13 +16,14 @@ class WebServer < Sinatra::Base
 
 
   post "/store" do
-    sha1 = Kam.sha1(params[:data])
-    Storage::DB.put(sha1, params[:data])
+    data = request.body.read
+    sha1 = Kam.sha1(data)
+    Storage::DB.put(sha1, data)
   end
 
   post "/node_store" do
-    data  = open(params[:url]).read
-    sha1 = Kam.sha1(data)
+    data  = open(params[:url])
+    sha1  = Kam.sha1(open(params[:url]).read)
     nodes = Kam.closest_node(sha1)
     Kam.store(nodes, data)
     "Storing #{sha1} in #{nodes}"
@@ -33,7 +37,7 @@ class WebServer < Sinatra::Base
       nodes = Kam.active(Kam.lookup(params[:key]))
       p "LOOOKUP!!!!!!!!!! #{Kam.lookup(params[:key])}"
       p "NODES!!!!!!!!!!!!!!!! #{nodes}"
-      node  = nodes.first
+      node = nodes.first
       if node.nil?
         return "Couldn't find any peers with the value"
       else

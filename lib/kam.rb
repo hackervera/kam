@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'digest/sha1'
 require 'yaml'
 require 'radix'
@@ -24,7 +25,7 @@ module Kam
       Kam::sha1("#{IP}:#{PORT}")
     end
 
-    def distance(node,node2=Kam::NODEID)
+    def distance(node, node2=Kam::NODEID)
       node2.b(16).to_i ^ node.b(16).to_i
     end
 
@@ -42,6 +43,8 @@ module Kam
       puts "Internal server error"
     rescue URI::InvalidURIError
       puts "invalid url: #{url}"
+    rescue SocketError
+      puts "bad socket for #{url}"
     rescue => e
       puts e
       puts e.class
@@ -56,9 +59,10 @@ module Kam
 
 
     def store(peers, data)
-        peers.each do |peer|
-           RestClient.post "http://#{peer["ip"]}:#{peer["port"]}/store", {data: data}
-        end
+      peers.each do |peer|
+        next if Kam::NODEID == peer["nodeid"]
+        RestClient.post "http://#{peer["ip"]}:#{peer["port"]}/store", data.read, :content_type => 'application/octet-stream'
+      end
     end
 
 
@@ -103,8 +107,9 @@ module Kam
 
     def closest_node(key)
       nodes = alphas(key)
-      nodes = (Kam.find_node(nodes, key) || []).flatten.uniq_by{|n| n["nodeid"]}
-      nodes.each{|n|  n["distance"] = Kam.distance(n["nodeid"], key)}.sort_by{|d| d["distance"]}.first(20)
+      nodes = (Kam.find_node(nodes, key) || []).flatten.uniq_by { |n| n["nodeid"] }.reject{|n| n["nodeid"] == NODEID}
+      nodes = alphas(key) if nodes.empty?
+      nodes.each { |n| n["distance"] = Kam.distance(n["nodeid"], key) }.sort_by { |d| d["distance"] }.first(20)
     end
 
     def lookup(key)
@@ -112,8 +117,8 @@ module Kam
       found_values = []
       counter      = 0
       while found_values.empty?
-        counter      += 1
-        nodes        = Kam.find_value(nodes, key).flatten
+        counter += 1
+        nodes   = Kam.find_value(nodes, key).flatten
         p "COUNTER!!!!!!! #{counter}"
         p "NODES!!!!!! #{nodes}"
         found_values = nodes.select { |n| n["value"] == "have" }
