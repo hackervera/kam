@@ -29,7 +29,7 @@ class WebServer < Sinatra::Base
   end
 
   get "/ping" do
-    Storage.update_bucket(nodeid: params[:nodeid],ip: params[:id], port: params[:port]).to_json
+    Storage.update_bucket(nodeid: params[:nodeid],ip: params[:ip], port: params[:port]).to_json
     Kam::NODEINFO.to_json
   end
 
