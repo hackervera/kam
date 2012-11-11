@@ -149,3 +149,4 @@ module Kam
 end
 require_relative 'rpc_server'
 require_relative 'storage'
+require_relative 'web_server'
