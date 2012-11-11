@@ -6,6 +6,13 @@ class WebServer < Sinatra::Base
     erb :index
   end
 
+  post "/store" do
+    data =   open(params[:url]).read
+    sha1 =   Kam.sha1(data)
+    Storage::DB.put(sha1, data)
+    sha1
+  end
+
   get "/find" do
     data = Storage::DB.get(params[:key])
 
