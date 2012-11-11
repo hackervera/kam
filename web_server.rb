@@ -7,6 +7,15 @@ class WebServer < Sinatra::Base
     erb :index
   end
 
+  get "/find_node" do
+    Storage.bucket_members(Kam.bucket(Kam.distance(params[:key]))).to_json
+  end
+
+  get '/closest_node' do
+    Kam.closest_node(params[:key])
+  end
+
+
   post "/store" do
     data =   open(params[:url]).read
     sha1 =   Kam.sha1(data)
@@ -37,7 +46,6 @@ class WebServer < Sinatra::Base
     if value
       node_info           = Kam::NODEINFO
       node_info["value"]  = "have"
-      node_info["nodeid"] = key
       node_info.to_json
     else
       Storage.bucket_members(Kam.bucket(Kam.distance(key))).to_json

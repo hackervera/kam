@@ -32,7 +32,7 @@ module Kam
     end
 
     def ping(peer)
-      url = "http://#{peer["ip"]}:#{peer["port"]}/ping?nodeid=#{NODEID}&port=#{PORT}&ip=#{IP}"
+      url      = "http://#{peer["ip"]}:#{peer["port"]}/ping?nodeid=#{NODEID}&port=#{PORT}&ip=#{IP}"
       response = open(url).read
       Storage.update_bucket(JSON.parse response)
     rescue Errno::ECONNREFUSED => e
@@ -47,16 +47,17 @@ module Kam
       puts e.backtrace
     end
 
+
     def transfer(peer, key)
-      url   = "http://#{peer["ip"]}:#{peer["port"]}/transfer?key=#{key}"
+      url = "http://#{peer["ip"]}:#{peer["port"]}/transfer?key=#{key}"
       open(url).read
     end
 
-    def find_value(nodes,key)
-      url = nil
+    def find_value(nodes, key)
+      url    = nil
       bodies = []
       nodes.each do |peer|
-        url =  "http://#{peer["ip"]}:#{peer["port"]}/find_value?key=#{key}"
+        url      = "http://#{peer["ip"]}:#{peer["port"]}/find_value?key=#{key}"
         response = open(url).read
         bodies << JSON.parse(response)
       end
@@ -67,11 +68,33 @@ module Kam
       puts "#{url} seems to be down"
     end
 
+    def find_node(nodes, key)
+      url    = nil
+      bodies = []
+      nodes.each do |peer|
+        url      = "http://#{peer["ip"]}:#{peer["port"]}/find_node?key=#{key}"
+        response = open(url).read
+        bodies << JSON.parse(response)
+      end
+      bodies
+    rescue URI::InvalidURIError
+      puts "Bad URI for #{url}"
+    rescue Errno::ECONNREFUSED
+      puts "#{url} seems to be down"
+    rescue OpenURI::HTTPError
+      puts "#{url} not found"
+    end
+
 
     def bootstrap
       CONFIG["bootstrap"].each do |peer|
         ping(peer)
       end
+    end
+
+    def closest_node(key)
+      nodes = alphas(key)
+      (Kam.find_node(nodes, key) || []).flatten
     end
 
     def lookup(key)
@@ -82,7 +105,7 @@ module Kam
         counter      += 1
         nodes        = Kam.find_value(nodes, key).flatten
         found_values = nodes.select { |n| n["nodeid"] == key }
-        break if counter > 5  || nodes.empty?
+        break if counter > 5 || nodes.empty?
       end
       found_values.uniq
     end
@@ -102,24 +125,24 @@ module Kam
 
     def alphas(key)
       bucket = Kam::bucket(Kam::distance(key))
-      nodes  = Storage.bucket_members(bucket).uniq_by{|m| m["nodeid"]}.first(3).to_set
+      nodes  = Storage.bucket_members(bucket).uniq_by { |m| m["nodeid"] }.first(3).to_set
       nodes  = active(nodes).to_set
       if nodes.length < 3
-        nodes += active(Kam.peers).uniq_by{|m| m["nodeid"]}.first(3-nodes.length).to_set
+        nodes += active(Kam.peers).uniq_by { |m| m["nodeid"] }.first(3-nodes.length).to_set
       end
       nodes.to_a.reject { |n| n["nodeid"] == NODEID }
     end
 
     def peers
-      Storage.peers.uniq_by{|n| n["nodeid"]}
+      Storage.peers.uniq_by { |n| n["nodeid"] }
     end
   end
 
 
-  CONFIG = YAML.load_file(ARGV[0] || File.dirname(__FILE__)+"/config.yml")
-  PORT   = CONFIG["port"]
-  IP     = CONFIG["ip"]
-  NODEID = Kam.nodeid
+  CONFIG   = YAML.load_file(ARGV[0] || File.dirname(__FILE__)+"/config.yml")
+  PORT     = CONFIG["port"]
+  IP       = CONFIG["ip"]
+  NODEID   = Kam.nodeid
   NODEINFO = { nodeid: NODEID, port: PORT, ip: IP }
 
 end
