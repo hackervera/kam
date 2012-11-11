@@ -32,7 +32,7 @@ module Kam
     end
 
     def ping(peer)
-      url = "http://#{peer["ip"]}:#{peer["port"]}/ping?nodeid=#{NODEID}&port=#{PORT}&ip#{IP}"
+      url = "http://#{peer["ip"]}:#{peer["port"]}/ping?nodeid=#{NODEID}&port=#{PORT}&ip=#{IP}"
       response = open(url).read
       Storage.update_bucket(JSON.parse response)
     rescue Errno::ECONNREFUSED => e
