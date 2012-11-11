@@ -58,6 +58,7 @@ module Kam
       alphas.reject{|a| a["ip"].nil?}.each do |peer|
         url =  "http://#{peer["ip"]}:#{peer["port"]}/find_value?key=#{key}"
         response = open(url).read
+        next if response == "null"
         bodies << JSON.parse(response)
       end
       bodies
@@ -111,7 +112,7 @@ module Kam
     end
 
     def peers
-      Storage.peers
+      Storage.peers.uniq_by{|n| n["nodeid"]}
     end
   end
 

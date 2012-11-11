@@ -7,9 +7,10 @@ class WebServer < Sinatra::Base
   end
 
   get "/find" do
-    node = Kam.lookup(params[:key]).first
+    nodes = Kam.active(Kam.lookup(params[:key]))
+    node = nodes.first
     if node.nil?
-      "Couldn't find any peers"
+      "Couldn't find any peers with the value"
     else
       Kam.transfer(node, params[:key])
     end
