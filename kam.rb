@@ -39,6 +39,8 @@ module Kam
       puts "connection to #{peer} failed"
     rescue OpenURI::HTTPError
       puts "Internal server error"
+    rescue URI::InvalidURIError
+      puts "invalid url: #{url}"
     rescue => e
       puts e
       puts e.class
@@ -61,6 +63,8 @@ module Kam
       bodies
     rescue URI::InvalidURIError
       puts "Bad URI for #{url}"
+    rescue Errno::ECONNREFUSED
+      puts "#{url} seems to be down"
     end
 
 
@@ -76,7 +80,7 @@ module Kam
       counter      = 0
       while found_values.empty?
         counter      += 1
-        nodes        = Kam.find_value(nodes, key).flatten
+        nodes        = (Kam.find_value(nodes, key) || []).flatten
         found_values = nodes.select { |n| n["nodeid"] == key }
         break if counter > 5
       end
@@ -92,20 +96,16 @@ module Kam
 
     def active(nodes)
       nodes.reject do |peer|
-        connected = nil
-        TCPSocket.open(peer["ip"], peer["port"]) do |s|
-          connected = s
-        end rescue nil
-        connected.nil?
+        ping(peer).nil? ? true : false
       end
     end
 
     def alphas(key)
       bucket = Kam::bucket(Kam::distance(key))
-      nodes  = Storage.bucket_members(bucket).first(3).to_set
+      nodes  = Storage.bucket_members(bucket).uniq_by{|m| m["nodeid"]}.first(3).to_set
       nodes  = active(nodes).to_set
       if nodes.length < 3
-        nodes += active(Kam.peers).first(3-nodes.length).to_set
+        nodes += active(Kam.peers).uniq_by{|m| m["nodeid"]}.first(3-nodes.length).to_set
       end
       nodes.to_a.reject { |n| n["nodeid"] == NODEID }
     end
