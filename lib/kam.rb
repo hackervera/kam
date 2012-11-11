@@ -74,7 +74,7 @@ module Kam
         response = open(url).read
         bodies << JSON.parse(response)
       end
-      bodies
+      bodies  || []
     rescue URI::InvalidURIError
       puts "Bad URI for #{url}"
     rescue Errno::ECONNREFUSED
@@ -119,8 +119,6 @@ module Kam
       while found_values.empty?
         counter += 1
         nodes   = Kam.find_value(nodes, key).flatten
-        p "COUNTER!!!!!!! #{counter}"
-        p "NODES!!!!!! #{nodes}"
         found_values = nodes.select { |n| n["value"] == "have" }
         break if counter > 5 || nodes.empty?
       end
