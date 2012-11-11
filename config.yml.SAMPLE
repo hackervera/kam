@@ -1,0 +1,10 @@
+ip: PUBLIC IP OF SERVER GOES HERE
+port: IP YOU WANT TO BIND TO
+storage: "/tmp/contacts"
+bootstrap:
+  - ip: 178.79.169.159
+    port: 8585
+
+# You can add more bootstrap contacts by copying the example above, e.g.
+#  - ip: SOME PUBLIC IP
+#    port: THEIR PORT
