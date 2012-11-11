@@ -30,8 +30,10 @@ module Storage
 
     def bucket_members(bucket)
       members = JSON.parse(DB.get(bucket.to_s)) rescue [].map { |m| JSON.parse m }
-      if members.length < 20
-        Kam.peers
+      if Kam.active(members.uniq_by{|n| n["nodeid"]}).length < 20
+        Kam.active(Kam.peers)
+      else
+        members
       end
     end
 
