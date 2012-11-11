@@ -52,13 +52,12 @@ module Kam
       open(url).read
     end
 
-    def find_value(alphas, key)
+    def find_value(nodes,key)
       url = nil
       bodies = []
-      alphas.reject{|a| a["ip"].nil?}.each do |peer|
+      nodes.each do |peer|
         url =  "http://#{peer["ip"]}:#{peer["port"]}/find_value?key=#{key}"
         response = open(url).read
-        next if response == "null"
         bodies << JSON.parse(response)
       end
       bodies
@@ -81,9 +80,9 @@ module Kam
       counter      = 0
       while found_values.empty?
         counter      += 1
-        nodes        = (Kam.find_value(nodes, key) || []).flatten
+        nodes        = Kam.find_value(nodes, key).flatten
         found_values = nodes.select { |n| n["nodeid"] == key }
-        break if counter > 5
+        break if counter > 5  || nodes.empty?
       end
       found_values.uniq
     end
