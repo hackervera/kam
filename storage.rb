@@ -6,11 +6,11 @@ module Storage
     # structure should be hash with nodeid, ip, and port
     def update_bucket(structure)
       # generate timestamp
-      time            = Time.now.to_i
+      time   = Time.now.to_i
       # determine bucket for nodeid
-      bucket          = Kam.bucket(Kam.distance(structure["nodeid"] || structure[:nodeid]))
+      bucket = Kam.bucket(Kam.distance(structure["nodeid"] || structure[:nodeid]))
       # grab current bucket members
-      current_members = JSON.parse(DB.get(bucket.to_s) ) rescue []
+      current_members = JSON.parse(DB.get(bucket.to_s)) rescue []
       while current_members.length >= 20
         #remove member with oldest timestamp to make room
         marked = current_members.sort_by { |m| m["timestamp"] }.first
@@ -19,13 +19,13 @@ module Storage
       DB.put(bucket.to_s, current_members.to_json)
       node_ids               = current_members.map { |c| c["nodeid"] }
       structure["timestamp"] = time
-       if   node_ids.include?(structure["nodeid"])
-         p "#{structure} already in bucket"
-       else
-         current_members << structure
-         DB.put(bucket.to_s, current_members.to_json)
-         p "Adding #{structure} to bucket #{bucket}"
-       end
+      if   node_ids.include?(structure["nodeid"])
+        p "#{structure} already in bucket"
+      elsif Kam.active(structure)
+        current_members << structure
+        DB.put(bucket.to_s, current_members.to_json)
+        p "Adding #{structure} to bucket #{bucket}"
+      end
     end
 
     def bucket_members(bucket)
@@ -40,7 +40,7 @@ module Storage
     end
 
     def peers
-      DB.each(from: "0", to: "160").map{|_,v| JSON.parse(v) rescue next}.compact.flatten
+      DB.each(from: "0", to: "160").map { |_, v| JSON.parse(v) rescue next }.compact.flatten
     end
   end
 end
