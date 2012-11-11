@@ -19,11 +19,11 @@ module Storage
       node_ids               = current_members.map { |c| c["nodeid"] }
       structure["timestamp"] = time
        if   node_ids.include?(structure["nodeid"])
-         "#{structure} already in bucket"
+         p "#{structure} already in bucket"
        else
          current_members << structure
          DB.put(bucket.to_s, current_members.to_json)
-         "Adding #{structure} to bucket #{bucket}"
+         p "Adding #{structure} to bucket #{bucket}"
        end
     end
 
@@ -39,7 +39,7 @@ module Storage
     end
 
     def peers
-      DB.each(from: "0", to: "160").map{|_,v| JSON.parse(v)}.flatten rescue []
+      DB.each(from: "0", to: "160").map{|_,v| JSON.parse(v) rescue next}.flatten
     end
   end
 end
