@@ -1,5 +1,6 @@
 require 'sinatra'
 require 'base64'
+require 'filemagic'
 class WebServer < Sinatra::Base
 
   get "/" do
@@ -26,6 +27,7 @@ class WebServer < Sinatra::Base
         Storage::DB.put(params[:key], data)
       end
     end
+    content_type FileMagic.new(FileMagic::MAGIC_MIME).buffer(data)
     data
   end
 
