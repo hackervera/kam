@@ -26,7 +26,8 @@ class WebServer < Sinatra::Base
     sha1  = Kam.sha1(open(params[:url]).read)
     nodes = Kam.closest_node(sha1)
     Kam.store(nodes, data)
-    "Storing #{sha1} in #{nodes}"
+
+    "Storing data as #{sha1} visit at http://pdxbrain.com:8585/find?key=#{sha1}"
   end
 
 
@@ -35,8 +36,6 @@ class WebServer < Sinatra::Base
 
     if data.nil? || Kam.sha1(data) != params[:key]
       nodes = Kam.active(Kam.lookup(params[:key]))
-      p "LOOOKUP!!!!!!!!!! #{Kam.lookup(params[:key])}"
-      p "NODES!!!!!!!!!!!!!!!! #{nodes}"
       node = nodes.first
       if node.nil?
         return "Couldn't find any peers with the value"

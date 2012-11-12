@@ -38,13 +38,13 @@ module Kam
       response = open(url).read
       Storage.update_bucket(JSON.parse response)
     rescue Errno::ECONNREFUSED => e
-      puts "connection to #{peer} failed"
+      #puts "connection to #{peer} failed"
     rescue OpenURI::HTTPError
-      puts "Internal server error"
+      #puts "Internal server error"
     rescue URI::InvalidURIError
-      puts "invalid url: #{url}"
+      #puts "invalid url: #{url}"
     rescue SocketError
-      puts "bad socket for #{url}"
+      #puts "bad socket for #{url}"
     rescue => e
       puts e
       puts e.class
@@ -74,7 +74,7 @@ module Kam
         response = open(url).read
         bodies << JSON.parse(response)
       end
-      bodies  || []
+      bodies
     rescue URI::InvalidURIError
       puts "Bad URI for #{url}"
     rescue Errno::ECONNREFUSED

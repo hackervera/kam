@@ -17,10 +17,10 @@ module Storage
         current_members.delete(marked)
       end
       DB.put(bucket.to_s, current_members.to_json)
-      node_ids               = current_members.map { |c| c["nodeid"] }
+      node_ids               = Kam.peers.map { |c| c["nodeid"] }
       structure["timestamp"] = time
       if   node_ids.include?(structure["nodeid"])
-        p "#{structure} already in bucket"
+        #p "#{structure} already in bucket"
       elsif Kam.active(structure)
         current_members << structure
         DB.put(bucket.to_s, current_members.to_json)
