@@ -35,16 +35,9 @@ module Kam
 
     def ping(peer)
       url      = "http://#{peer["ip"]}:#{peer["port"]}/ping?nodeid=#{NODEID}&port=#{PORT}&ip=#{IP}"
-      response = open(url).read
+      response = open(url).read  rescue return
       Storage.update_bucket(JSON.parse response)
-    rescue Errno::ECONNREFUSED => e
-      #puts "connection to #{peer} failed"
-    rescue OpenURI::HTTPError
-      #puts "Internal server error"
-    rescue URI::InvalidURIError
-      #puts "invalid url: #{url}"
-    rescue SocketError
-      #puts "bad socket for #{url}"
+      true
     rescue => e
       puts e
       puts e.class
@@ -147,9 +140,9 @@ module Kam
       nodes  = Storage.bucket_members(bucket).uniq_by { |m| m["nodeid"] }.first(3).to_set
       nodes  = active(nodes).to_set
       if nodes.length < 3
-        nodes += active(Kam.peers).uniq_by { |m| m["nodeid"] }.first(3-nodes.length).to_set
+        nodes += active(Kam.peers).uniq_by { |m| m["nodeid"] }.reject { |n| n["nodeid"] == NODEID }.first(3-nodes.length).to_set
       end
-      nodes.to_a.reject { |n| n["nodeid"] == NODEID }
+      nodes.to_a
     end
 
     def peers
