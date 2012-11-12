@@ -71,14 +71,18 @@ module Kam
       bodies = []
       nodes.each do |peer|
         url      = "http://#{peer["ip"]}:#{peer["port"]}/find_value?key=#{key}"
-        response = open(url).read
+        begin
+          response = open(url).read
+        rescue URI::InvalidURIError
+          puts "Bad URI for #{url}"
+          next
+        rescue Errno::ECONNREFUSED
+          puts "#{url} seems to be down"
+          next
+        end
         bodies << JSON.parse(response)
       end
       bodies  || []
-    rescue URI::InvalidURIError
-      puts "Bad URI for #{url}"
-    rescue Errno::ECONNREFUSED
-      puts "#{url} seems to be down"
     end
 
     def find_node(nodes, key)
